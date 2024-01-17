@@ -1,0 +1,38 @@
+module acesso (
+  input logic clk, rst, start_btn, red_btn, green_btn, blue_btn,
+  output logic unlock
+);
+  logic tot_ld, tot_clr, tot_lt_s, c;
+
+  // Instanciando os módulos
+  op_part op01 (
+    .clk(clk),
+    // Outras portas de op_part
+  );
+  
+  control_part ctrl01 (
+    .clk(clk),
+    // Outras portas de control_part
+  );
+  
+  botao bt01 (
+    .clk(clk),
+    .rst(rst),
+    .cin(c),
+    .c(c)
+  );
+
+  ControleAcesso ca01 (
+    .clk(clk),
+    .start_btn(start_btn),
+    .red_btn(red_btn),
+    .green_btn(green_btn),
+    .blue_btn(blue_btn),
+    .unlock(unlock)
+  );
+  
+  // Conexões entre os módulos
+  assign c = bt01.c;
+  // Conectar outras portas conforme necessário
+
+endmodule

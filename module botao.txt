@@ -1,0 +1,35 @@
+module botao (
+  input clk, rst, cin,
+  output logic c
+);
+  typedef enum logic [1:0] {st_a, st_b, st_c} state_t;
+  
+  state_t state; 
+  
+  always_ff @(posedge clk, negedge rst)
+    if (~rst)
+      state <= st_a; 
+    else begin
+      case (state)
+        st_a: begin
+          c <= 0;
+          if (cin)
+            state <= st_b;
+        end
+
+        st_b: begin
+          c <= 1;
+          if (cin)
+            state <= st_c;
+          else 
+            state <= st_a;
+        end
+
+        st_c: begin  
+          c <= 0;
+          if (~cin)
+            state <= st_a;
+        end
+      endcase
+    end
+endmodule

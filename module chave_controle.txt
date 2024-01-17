@@ -1,0 +1,57 @@
+module chave_controle (
+    input logic clk, // Sinal de clock
+    input logic rst_n, // Sinal de reset ativo em nível baixo
+    input logic a, // Sinal de controle
+    output logic r // Saída de dados
+);
+    typedef enum logic [2:0] { //Estados da maquina de estados
+        WAIT,
+        K1,
+        K2,
+        K3,
+        K4
+    } state_t;
+
+    state_t state, next_state; //Registradores de estados
+
+    always_ff @(posedge clk or negedge rst_n) begin //Este bloco always_ff é sensível às bordas de subida do sinal de clock (clk) e à borda de descida do sinal de reset ativo em nível baixo (rst_n).
+        if (~rst_n) begin    //Quando rst_n está em nível baixo, a máquina de estados é reiniciada para o estado inicial (WAIT).
+            state <= WAIT;
+        end else begin
+            state <= next_state;  //Quando rst_n está em nível alto e há uma borda de subida em clk, a máquina de estados muda de estado com base na lógica definida no bloco case
+        end
+    end
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (~rst_n) begin 
+            r <= 1'b0;
+        end else begin
+            case (state)
+                WAIT: begin
+                    if (a) begin    No estado WAIT, a máquina de estados verifica se o sinal de controle a está ativo (1). Se estiver, a máquina de estados avança para o estado K1. Se não estiver ativo, permanece no estado WAIT.
+                        next_state = K1;
+                    end else begin
+                        next_state = WAIT;
+                    end
+                end
+                K1: begin   No estado K1, a saída r é definida como 1 (r <= 1'b1) e a máquina de estados avança para o estado K2. O mesmo padrão é seguido para os estados K2, K3 e K4.
+                    r <= 1'b1;
+                    next_state = K2;
+                end
+                K2: begin
+                    r <= 1'b0;
+                    next_state = K3;
+                end
+                K3: begin
+                    r <= 1'b1;
+                    next_state = K4;
+                end
+                K4: begin
+                    r <= 1'b1;
+                    next_state = WAIT; // Retorna ao estado inicial após enviar todos os bits.
+                end
+                default: next_state = WAIT;
+            endcase
+        end
+    end
+endmodule

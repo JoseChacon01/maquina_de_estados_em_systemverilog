@@ -1,0 +1,77 @@
+module ControleAcesso (
+  input logic clk,          // Sinal de relógio
+  input logic start_btn,    // Botão de início
+  input logic red_btn,      // Botão vermelho
+  input logic green_btn,    // Botão verde
+  input logic blue_btn,     // Botão azul
+  output logic unlock       // Saída destravar (u)
+);
+
+  // Definindo os estados da máquina de estados
+  typedef enum logic [2:0] {
+    Espera,
+    Inicio,
+    Vermelho1,
+    Azul,
+    Verde,
+    Vermelho2
+  } State; 
+
+  
+  State state, next_state; 
+  logic a;
+
+
+  //Registros de estado:
+
+  always_ff @(posedge clk) begin
+    if (start_btn)
+      state <= Inicio;  //Se o botão de início (start_btn) for pressionado, a máquina de estados passa para o estado de Início.
+    else
+      state <= next_state;
+  end
+
+
+
+  // Lógica de transição de estado
+  always_comb begin
+    a = (red_btn | green_btn | blue_btn) ? 1 : 0; 
+
+    case (state)
+ 
+      Espera: begin 
+        next_state = (start_btn) ? Inicio : Espera;
+      end
+
+      Inicio: begin 
+        next_state = (red_btn) ? Vermelho1 : Espera;
+      end
+
+      Vermelho1: begin 
+        next_state = (blue_btn) ? Azul : (a) ? Vermelho1 : Espera; 
+      end
+
+      Azul: begin 
+        next_state = (green_btn) ? Verde : (a) ? Azul : Espera;
+      end
+
+      Verde: begin 
+        next_state = (red_btn) ? Vermelho2 : (a) ? Verde : Espera;
+      end
+
+      Vermelho2: begin 
+        next_state = Espera;
+      end
+
+      default: begin //Caso nenhum dos casos anteriores seja atendido, o estado é definido como Espera por padrão.
+        next_state = Espera;
+      end
+    endcase
+  end
+
+  // Saída de destravamento - Sequência correta foi inserida e a porta está destravada.
+  always_comb begin
+    unlock = (state == Vermelho2) ? 1 : 0; //Quando a variável state é igual a Vermelho2 a porta é destravada -  (unlock = 1) 
+  end
+
+endmodule

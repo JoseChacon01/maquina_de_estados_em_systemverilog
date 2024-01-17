@@ -1,0 +1,86 @@
+module ControleDeAcesso (
+    input logic clk,             // Sinal de clock
+    input logic rst,             // Sinal de reset
+    input logic [3:0] botoes,     // Entrada dos botões (verde, amarelo, azul, vermelho2)
+    output logic portao_aberto   // Saída indicando se o portão está aberto
+);
+
+
+//Enumerações:
+
+    typedef enum logic [3:0] {
+        VERDE = 4'b0001,
+        AMARELO = 4'b0010,
+        AZUL = 4'b0100,
+        VERMELHO2 = 4'b1000
+    } Botoes; //Numeração dos botões.
+
+    typedef enum logic [1:0] {
+        IDLE,                //Estado de espera
+        AGUARDANDO_SEQUENCIA,
+        PORTAO_ABERTO
+    } Estados; //Defição dos estados da máquina de estados.
+
+
+
+//Variáveis e Sinais:
+
+    logic [3:0] sequencia_correta = '{VERDE, AMARELO, AZUL, VERMELHO2}; //Sequência correta que o usuário deve digitar para abrir o portão.
+    Estados estado_atual = IDLE;
+    Estados proximo_estado = IDLE;
+    logic [3:0] sequencia_digitada;
+
+
+
+//Máquina de Estados:
+
+    always_ff @(posedge clk or posedge rst) begin 
+        if (rst) begin  
+            estado_atual <= IDLE; //Reinicialização do estado inicial.
+            sequencia_digitada <= 4'b0000; //sequencia_digitada é atribuído a 4'b0000, inicializando a sequência digitada para zero.
+        end else begin
+            estado_atual <= proximo_estado; //Transição para o próximo estado da máquina de estados.
+        end
+    end
+
+//Se o reset estiver ativo, a máquina é reinicializada para o estado inicial (IDLE), caso contrário, ela transita para o próximo estado. 
+
+
+
+
+always_ff @(posedge clk) begin
+
+    if (rst) begin  // Em caso de reset, volta para o estado IDLE e reinicializa variáveis.
+        proximo_estado <= IDLE;
+
+    end else begin    // Caso contrário, determina o próximo estado com base no estado atual.
+        if (estado_atual == IDLE) begin
+            proximo_estado <= (botoes != 4'b0000) ? AGUARDANDO_SEQUENCIA : IDLE;
+
+        end else if (estado_atual == AGUARDANDO_SEQUENCIA) begin 
+            proximo_estado <= (botoes != 4'b0000) ? AGUARDANDO_SEQUENCIA : (sequencia_digitada == sequencia_correta) ? PORTAO_ABERTO : IDLE;
+        
+        end else if (estado_atual == PORTAO_ABERTO) begin
+            proximo_estado <= IDLE;
+        end
+    end
+end
+
+
+
+always_ff @(posedge clk or posedge rst) begin
+    if (rst) begin
+        sequencia_digitada <= 4'b0000;
+    end else begin
+        if (estado_atual == AGUARDANDO_SEQUENCIA) begin
+            sequencia_digitada <= {sequencia_digitada[2:0], botoes[2:0]};
+        end else begin
+            sequencia_digitada <= 4'b0000;
+        end
+    end
+end
+
+    
+
+    assign portao_aberto = (estado_atual == PORTAO_ABERTO);
+endmodule

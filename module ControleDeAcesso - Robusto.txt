@@ -1,0 +1,85 @@
+module ControleDeAcesso (
+    input logic clk,            // Sinal de clock
+    input logic rst,            // Sinal de reset
+    input logic [3:0] botoes,    // Entrada dos botões (verde, amarelo, azul, vermelho2)
+    output logic portao_aberto  // Saída indicando se o portão está aberto
+);
+
+    typedef enum logic [3:0] {
+        VERDE = 4'b0001,
+        AMARELO = 4'b0010,
+        AZUL = 4'b0100,
+        VERMELHO2 = 4'b1000
+    } Botoes; // Adicionado o botão 'vermelho2' à enumeração
+
+    typedef enum logic [1:0] {
+        IDLE,
+        AGUARDANDO_SEQUENCIA,
+        VERIFICANDO_SEQUENCIA,
+        PORTAO_ABERTO
+    } Estados;
+
+    logic [3:0] sequencia_correta = '{VERDE, AMARELO, AZUL, VERMELHO2}; // Atualizada a sequência correta com o novo botão
+    logic [3:0] sequencia_digitada;
+    Estados estado_atual, proximo_estado;
+    logic [3:0] botao_anterior;   // Atualizado o tipo do sinal para acomodar o novo botão
+    logic [3:0] botao_pressionado;
+
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) begin
+            estado_atual <= IDLE;
+            sequencia_digitada <= 4'b0000;
+        end else begin
+            estado_atual <= proximo_estado;
+        end
+    end
+
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            botao_anterior <= 4'b0000;
+            botao_pressionado <= 4'b0000;
+        end else begin
+            botao_anterior <= botao_pressionado;
+            botao_pressionado <= (botoes != 4'b0000) && (botoes != botao_anterior);
+        end
+    end
+
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) begin
+            proximo_estado <= IDLE;
+        end else begin
+            case (estado_atual)
+                IDLE: begin
+                    if (botao_pressionado) begin
+                        proximo_estado <= AGUARDANDO_SEQUENCIA;
+                    end else begin
+                        proximo_estado <= IDLE;
+                    end
+                end
+
+                AGUARDANDO_SEQUENCIA: begin
+                    if (botao_pressionado) begin
+                        sequencia_digitada <= {sequencia_digitada[2:0], botoes[2:0]}; // Ajuste para acomodar o novo botão
+                        proximo_estado <= AGUARDANDO_SEQUENCIA;
+                    end else begin
+                        proximo_estado <= VERIFICANDO_SEQUENCIA;
+                    end
+                end
+
+                VERIFICANDO_SEQUENCIA: begin
+                    if (sequencia_digitada == sequencia_correta) begin
+                        proximo_estado <= PORTAO_ABERTO;
+                    end else begin
+                        proximo_estado <= AGUARDANDO_SEQUENCIA;
+                    end
+                end
+
+                PORTAO_ABERTO: begin
+                    proximo_estado <= IDLE;
+                end
+            endcase
+        end
+    end
+
+    assign portao_aberto = (estado_atual == PORTAO_ABERTO);
+endmodule
